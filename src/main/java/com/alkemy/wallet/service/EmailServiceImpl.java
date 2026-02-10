@@ -7,6 +7,7 @@ import com.sendgrid.SendGrid;
 import com.sendgrid.helpers.mail.Mail;
 import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
+import com.sendgrid.helpers.mail.objects.Personalization;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -15,18 +16,24 @@ public class EmailServiceImpl implements IEmailService{
 
     @Value("${sendgrid.api.key}")
     private String sendgridApiKey;
+    @Value("${sendgrid.template.verify}")
+    private String verifyTemplateId;
+
 
     public void sendVerificationEmail(String toEmail, String verificationLink) {
         System.out.println("ENVIANDO MAIL A " + toEmail);
         Email from = new Email("ezequielleandro.el@gmail.com");
         Email to = new Email(toEmail);
-        String subject = "Verificá tu cuenta";
-        Content content = new Content("text/html",
-                "<p>Bienvenido a AlkyWallet</p>" +
-                        "<p>Haz clic en el siguiente enlace para verificar tu cuenta:</p>" +
-                        "<a href=\"" + verificationLink + "\">Verificar cuenta</a>");
 
-        Mail mail = new Mail(from, subject, to, content);
+        Mail mail = new Mail();
+        mail.setFrom(from);
+        mail.setTemplateId(verifyTemplateId);
+
+        Personalization personalization = new Personalization();
+        personalization.addTo(to);
+        personalization.addDynamicTemplateData("verification_link", verificationLink);
+
+        mail.addPersonalization(personalization);
 
         SendGrid sg = new SendGrid(sendgridApiKey);
         Request request = new Request();
