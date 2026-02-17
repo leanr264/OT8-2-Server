@@ -5,7 +5,6 @@ import com.sendgrid.Request;
 import com.sendgrid.Response;
 import com.sendgrid.SendGrid;
 import com.sendgrid.helpers.mail.Mail;
-import com.sendgrid.helpers.mail.objects.Content;
 import com.sendgrid.helpers.mail.objects.Email;
 import com.sendgrid.helpers.mail.objects.Personalization;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,15 +13,18 @@ import org.springframework.stereotype.Service;
 @Service
 public class EmailServiceImpl implements IEmailService{
 
+    @Value("${email.from}")
+    private String fromEmail;
     @Value("${sendgrid.api.key}")
     private String sendgridApiKey;
     @Value("${sendgrid.template.verify}")
     private String verifyTemplateId;
 
 
+    @Override
     public void sendVerificationEmail(String toEmail, String verificationLink) {
         System.out.println("ENVIANDO MAIL A " + toEmail);
-        Email from = new Email("ezequielleandro.el@gmail.com");
+        Email from = new Email(fromEmail);
         Email to = new Email(toEmail);
 
         Mail mail = new Mail();
@@ -32,7 +34,6 @@ public class EmailServiceImpl implements IEmailService{
         Personalization personalization = new Personalization();
         personalization.addTo(to);
         personalization.addDynamicTemplateData("verification_link", verificationLink);
-
         mail.addPersonalization(personalization);
 
         SendGrid sg = new SendGrid(sendgridApiKey);

@@ -72,6 +72,28 @@ public class AuthServiceImpl implements IAuthService{
     }
 
     @Override
+    public void resendVerification(String email) {
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        if (Boolean.TRUE.equals(user.getVerified())) {
+            throw new RuntimeException("La cuenta ya está verificada");
+        }
+
+        VerificationToken token = verificationTokenRepository
+                .findByUserId(user.getId())
+                .orElseThrow(() -> new RuntimeException("Token no encontrado"));
+
+        if (token.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("El token ha expirado");
+        }
+
+        String verificationLink = "http://localhost:3000/verify?token=" + token.getToken();
+        emailService.sendVerificationEmail(user.getEmail(), verificationLink);
+    }
+
+    @Override
     public JwtAuthenticationResponseDto loginUser(LoginRequestDto loginRequest) {
         authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.getEmail(),loginRequest.getPassword())

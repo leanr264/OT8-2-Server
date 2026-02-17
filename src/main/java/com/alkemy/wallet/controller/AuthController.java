@@ -56,6 +56,12 @@ public class AuthController {
         return new ResponseEntity<>("¡Cuenta verificada correctamente!", HttpStatus.OK);
     }
 
+    @PostMapping("/resend-verification")
+    public ResponseEntity<String> resendVerification(@RequestParam String email) {
+        authService.resendVerification(email);
+        return ResponseEntity.ok("Correo reenviado correctamente");
+    }
+
 
     @PostMapping("/login")
     public ResponseEntity<JwtAuthenticationResponseDto> loginUser(@Valid @RequestBody LoginRequestDto loginRequest){
