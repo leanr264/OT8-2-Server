@@ -41,6 +41,10 @@ public class User implements UserDetails {
     @Column(name = "PASSWORD", nullable = false)
     private String password;
 
+    @Column(name = "VERIFIED", nullable = false)
+    private Boolean verified;
+
+
     @CreationTimestamp
     @Column(name = "CREATION_DATE")
     private Timestamp creationDate;
