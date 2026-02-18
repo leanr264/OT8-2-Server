@@ -84,7 +84,7 @@ public class AuthServiceImpl implements IAuthService{
 
         if (vToken.getExpiryDate().isBefore(LocalDateTime.now())) {
             throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST, "Token expirado");
+                    HttpStatus.GONE, "Token expirado");
         }
 
         User user = vToken.getUser();
