@@ -3,6 +3,7 @@ package com.alkemy.wallet.service;
 import com.alkemy.wallet.dto.request.LoginRequestDto;
 import com.alkemy.wallet.dto.request.RegisterRequestDto;
 import com.alkemy.wallet.dto.response.JwtAuthenticationResponseDto;
+import com.alkemy.wallet.dto.response.UserInfoResponseDto;
 import com.alkemy.wallet.entity.Role;
 import com.alkemy.wallet.entity.User;
 import com.alkemy.wallet.entity.VerificationToken;
@@ -41,7 +42,7 @@ public class AuthServiceImpl implements IAuthService{
         this.authManager = authManager;
     }
     @Override
-    public JwtAuthenticationResponseDto registerUser(RegisterRequestDto registerRequest) {
+    public UserInfoResponseDto registerUser(RegisterRequestDto registerRequest) {
         User newUser = new User();
         newUser.setFirstName(registerRequest.getFirstName());
         newUser.setLastName(registerRequest.getLastName());
@@ -63,12 +64,12 @@ public class AuthServiceImpl implements IAuthService{
         String verificationLink = "http://localhost:3000/verify?token=" + token;
         emailService.sendVerificationEmail(savedUser.getEmail(), verificationLink);
 
-        return new JwtAuthenticationResponseDto(
-                savedUser.getId(),
+        return new UserInfoResponseDto(
                 registerRequest.getEmail(),
                 registerRequest.getFirstName(),
                 registerRequest.getLastName(),
-                null
+                savedUser.getCreationDate(),
+                savedUser.getUpdateDate()
         );
     }
 
