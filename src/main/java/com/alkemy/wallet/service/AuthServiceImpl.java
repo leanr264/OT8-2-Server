@@ -15,6 +15,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -70,6 +71,27 @@ public class AuthServiceImpl implements IAuthService{
                 null
         );
     }
+
+    @Override
+    @Transactional
+    public void verifyUser(String token) {
+
+        System.out.println("VERIFY ENDPOINT HIT - TOKEN: " + token);
+        VerificationToken vToken = verificationTokenRepository.findByToken(token)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST, "Token inválido"));
+
+        if (vToken.getExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Token expirado");
+        }
+
+        User user = vToken.getUser();
+        user.setVerified(true);
+
+        userRepository.save(user);
+    }
+
 
     @Override
     public void resendVerification(String email) {

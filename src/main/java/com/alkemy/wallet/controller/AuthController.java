@@ -22,15 +22,9 @@ import java.util.Optional;
 @RequestMapping("/api/v1/auth")
 public class AuthController {
     private final IAuthService authService;
-    private final IVerificationTokenRepository verificationTokenRepository;
-    private final IUserRepository userRepository;
 
-    public AuthController(AuthServiceImpl authService,
-                          IVerificationTokenRepository verificationTokenRepository,
-                          IUserRepository userRepository) {
+    public AuthController(AuthServiceImpl authService) {
         this.authService = authService;
-        this.verificationTokenRepository = verificationTokenRepository;
-        this.userRepository = userRepository;
     }
 
     @PostMapping("/register")
@@ -41,18 +35,7 @@ public class AuthController {
 
     @GetMapping("/verify")
     public ResponseEntity<String> verifyUser(@RequestParam String token) {
-        System.out.println("VERIFY ENDPOINT HIT - TOKEN: " + token);
-        VerificationToken vToken = verificationTokenRepository.findByToken(token)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token inválido"));
-
-        if (vToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token expirado");
-        }
-
-        User user = vToken.getUser();
-        user.setVerified(true);
-        userRepository.save(user);
-
+        authService.verifyUser(token);
         return new ResponseEntity<>("¡Cuenta verificada correctamente!", HttpStatus.OK);
     }
 
