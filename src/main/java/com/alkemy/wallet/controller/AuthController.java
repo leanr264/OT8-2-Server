@@ -49,9 +49,16 @@ public class AuthController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token expirado");
         }
 
+        if (Boolean.TRUE.equals(vToken.getUsed())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Token ya utilizado");
+        }
+
         User user = vToken.getUser();
         user.setVerified(true);
         userRepository.save(user);
+
+        vToken.setUsed(true);
+        verificationTokenRepository.save(vToken);
 
         return new ResponseEntity<>("¡Cuenta verificada correctamente!", HttpStatus.OK);
     }

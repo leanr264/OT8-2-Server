@@ -29,6 +29,9 @@ public class VerificationToken {
     @JoinColumn(name = "USER_ID", nullable = false)
     private User user;
 
+    @Column(nullable = false)
+    private Boolean used = false;
+
     @Column(name = "EXPIRY_DATE", nullable = false)
     private LocalDateTime expiryDate;
 }
