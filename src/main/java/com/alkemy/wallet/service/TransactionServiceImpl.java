@@ -4,6 +4,7 @@ import com.alkemy.wallet.dto.TransactionDto;
 import com.alkemy.wallet.dto.request.SendTransactionRequestDto;
 import com.alkemy.wallet.dto.request.TransactionRequestDto;
 import com.alkemy.wallet.dto.request.UpdateTransactionRequestDto;
+import com.alkemy.wallet.dto.response.CurrencyExchangeResponseDTO;
 import com.alkemy.wallet.dto.response.PageableTransactionResponseDto;
 import com.alkemy.wallet.dto.response.SendTransactionResponseDto;
 import com.alkemy.wallet.dto.response.TransactionResponseDto;
@@ -20,6 +21,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
@@ -33,12 +35,14 @@ public class TransactionServiceImpl implements ITransactionService {
     private final ITransactionRepository transactionRepository;
     private final IJwtService jwtService;
     private final IAccountRepository accountRepository;
+    private final IExchangeService exchangeService;
 
-    public TransactionServiceImpl(IUserRepository userRepository,ITransactionRepository transactionRepository,IAccountRepository accountRepository, JwtServiceImpl jwtService) {
+    public TransactionServiceImpl(IUserRepository userRepository,ITransactionRepository transactionRepository,IAccountRepository accountRepository, JwtServiceImpl jwtService, IExchangeService exchangeService) {
         this.userRepository = userRepository;
         this.transactionRepository = transactionRepository;
         this.accountRepository = accountRepository;
         this.jwtService = jwtService;
+        this.exchangeService = exchangeService;
     }
 
     @Override
@@ -293,6 +297,74 @@ public class TransactionServiceImpl implements ITransactionService {
         return null;
     }
 
+    @Transactional
+    @Override
+    public CurrencyExchangeResponseDTO buyUsd(SendTransactionRequestDto transactionRequest, String token) {
+        System.out.println("TOKEN RECIBIDO: " + token);
+        System.out.println("ENTRÓ A buyUsd");
+
+        String originUserEmail = jwtService.extractUsername(token.substring(7));
+        System.out.println("EMAIL: " + originUserEmail);
+
+        Optional<User> originUserOptional = userRepository.findByEmail(originUserEmail);
+        if(originUserOptional.isPresent()){
+            System.out.println("Usuario encontrado");
+            User originUser = originUserOptional.get();
+
+            Optional<Account> originArsAccountOpt = originUser.getAccounts().stream()
+                    .filter(acc -> acc.getCurrency() == ECurrency.ARS)
+                    .findFirst();
+
+            if(originArsAccountOpt.isPresent()) {
+                System.out.println("Cuenta ARS encontrada");
+                Account originArsAccount = originArsAccountOpt.get();
+
+                // guardar el valor en dolares
+                double usdAmount = transactionRequest.getAmount();
+
+                // convertir Amount en ars
+                double arsAmount = exchangeService.convertUsdToArs(transactionRequest.getAmount());
+
+                System.out.println("USD: " + usdAmount);
+                System.out.println("ARS: " + arsAmount);
+                System.out.println("Balance ARS: " +
+                        originArsAccount.getBalance());
+
+                if(originArsAccount.getBalance() >= arsAmount && originArsAccount.getTransactionLimit() >= arsAmount && arsAmount >= 0.0){
+                    System.out.println("Saldo suficiente");
+                    Optional<Account> destinyAccountOptional = accountRepository.findById(transactionRequest.getDestinyAccountId());
+
+                    if(destinyAccountOptional.isPresent() && destinyAccountOptional.get().getCurrency() == ECurrency.USD) {
+                        System.out.println("Cuenta destino encontrada");
+                        System.out.println("Cuenta destino es USD");
+                        Account destinyUsdAccount = destinyAccountOptional.get();
+
+                        transactionRequest.setAmount(arsAmount);
+                        Transaction paymentTransaction = createPaymentForOriginUser(originArsAccount,transactionRequest);
+
+                        transactionRequest.setAmount(usdAmount);
+                        createIncomeForDestinyUser(destinyUsdAccount,transactionRequest);
+
+                        System.out.println("TRANSACCIÓN COMPLETADA");
+                        return new CurrencyExchangeResponseDTO(
+                                originUser.getEmail(),
+                                originArsAccount.getId(),
+                                destinyUsdAccount.getId(),
+                                paymentTransaction.getId(),
+                                paymentTransaction.getType().name(),
+                                paymentTransaction.getAmount(),
+                                usdAmount,
+                                paymentTransaction.getDescription(),
+                                paymentTransaction.getTransactionDate()
+                        );
+                    }
+                }
+            }
+
+        }
+        return null;
+    }
+
     private void createIncomeForDestinyUser(Account destinyAccount, SendTransactionRequestDto transactionRequest) {
         Transaction newTransaction = new Transaction();
         newTransaction.setAmount(transactionRequest.getAmount());
@@ -301,7 +373,9 @@ public class TransactionServiceImpl implements ITransactionService {
             String description = transactionRequest.getDescription().isBlank() ? "" : transactionRequest.getDescription();
             newTransaction.setDescription(description);
         }
-        newTransaction.setDescription("");
+        else{
+            newTransaction.setDescription("");
+        }
         newTransaction.setAccount(destinyAccount);
         transactionRepository.save(newTransaction);
         destinyAccount.setBalance(destinyAccount.getBalance() + transactionRequest.getAmount());

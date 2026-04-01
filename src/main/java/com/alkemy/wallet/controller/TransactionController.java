@@ -4,6 +4,7 @@ import com.alkemy.wallet.dto.TransactionDto;
 import com.alkemy.wallet.dto.request.SendTransactionRequestDto;
 import com.alkemy.wallet.dto.request.UpdateTransactionRequestDto;
 import com.alkemy.wallet.dto.request.TransactionRequestDto;
+import com.alkemy.wallet.dto.response.CurrencyExchangeResponseDTO;
 import com.alkemy.wallet.dto.response.PageableTransactionResponseDto;
 import com.alkemy.wallet.dto.response.SendTransactionResponseDto;
 import com.alkemy.wallet.dto.response.TransactionResponseDto;
@@ -71,4 +72,9 @@ public class TransactionController {
         return new ResponseEntity<>(transactionResponse,HttpStatus.CREATED);
     }
 
+    @PostMapping("/buyUsd")
+    public ResponseEntity<CurrencyExchangeResponseDTO> buyUsd(@Valid @RequestBody SendTransactionRequestDto transactionRequest, @RequestHeader(name = HttpHeaders.AUTHORIZATION) String token){
+        CurrencyExchangeResponseDTO transactionResponse = transactionService.buyUsd(transactionRequest, token);
+        return new ResponseEntity<>(transactionResponse, HttpStatus.CREATED);
+    }
 }
