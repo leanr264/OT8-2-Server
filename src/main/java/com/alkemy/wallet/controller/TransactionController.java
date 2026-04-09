@@ -74,7 +74,7 @@ public class TransactionController {
     }
 
     @PostMapping("/buyUsd")
-    public ResponseEntity<CurrencyExchangeResponseDTO> buyUsd(@Valid @RequestBody SendTransactionRequestDto transactionRequest, @RequestHeader(name = HttpHeaders.AUTHORIZATION) String token){
+    public ResponseEntity<CurrencyExchangeResponseDTO> buyUsd(@Valid @RequestBody CurrencyExchangeRequestDto transactionRequest, @RequestHeader(name = HttpHeaders.AUTHORIZATION) String token){
         CurrencyExchangeResponseDTO transactionResponse = transactionService.buyUsd(transactionRequest, token);
         return new ResponseEntity<>(transactionResponse, HttpStatus.OK);
     }

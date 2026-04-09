@@ -18,6 +18,6 @@ public interface ITransactionService {
     TransactionResponseDto createPayment(TransactionRequestDto paymentRequest, String token);
     SendTransactionResponseDto sendArs(SendTransactionRequestDto transactionRequest, String token);
     SendTransactionResponseDto sendUsd(SendTransactionRequestDto transactionRequest, String token);
-    CurrencyExchangeResponseDTO buyUsd(SendTransactionRequestDto transactionRequest, String token);
+    CurrencyExchangeResponseDTO buyUsd(CurrencyExchangeRequestDto transactionRequest, String token);
     CurrencyExchangeResponseDTO sellUsd(CurrencyExchangeRequestDto transactionRequest, String token);
 }

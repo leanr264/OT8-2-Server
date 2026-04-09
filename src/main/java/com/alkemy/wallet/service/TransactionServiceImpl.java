@@ -360,16 +360,11 @@ public class TransactionServiceImpl implements ITransactionService {
 
     @Transactional
     @Override
-    public CurrencyExchangeResponseDTO buyUsd(SendTransactionRequestDto transactionRequest, String token) {
-        System.out.println("TOKEN RECIBIDO: " + token);
-        System.out.println("ENTRÓ A buyUsd");
-
+    public CurrencyExchangeResponseDTO buyUsd(CurrencyExchangeRequestDto transactionRequest, String token) {
         String originUserEmail = jwtService.extractUsername(token.substring(7));
-        System.out.println("EMAIL: " + originUserEmail);
 
         Optional<User> originUserOptional = userRepository.findByEmail(originUserEmail);
         if(originUserOptional.isPresent()){
-            System.out.println("Usuario encontrado");
             User originUser = originUserOptional.get();
 
             Optional<Account> originArsAccountOpt = originUser.getAccounts().stream()
@@ -377,36 +372,34 @@ public class TransactionServiceImpl implements ITransactionService {
                     .findFirst();
 
             if(originArsAccountOpt.isPresent()) {
-                System.out.println("Cuenta ARS encontrada");
                 Account originArsAccount = originArsAccountOpt.get();
 
                 // guardar el valor en dolares
-                double usdAmount = transactionRequest.getAmount();
+                double usdAmount = transactionRequest.getAmountUsd();
 
                 // convertir Amount en ars
-                double arsAmount = exchangeService.convertUsdToArs(transactionRequest.getAmount());
-
-                System.out.println("USD: " + usdAmount);
-                System.out.println("ARS: " + arsAmount);
-                System.out.println("Balance ARS: " +
-                        originArsAccount.getBalance());
+                double arsAmount = exchangeService.convertUsdToArs(transactionRequest.getAmountUsd());
 
                 if(originArsAccount.getBalance() >= arsAmount && originArsAccount.getTransactionLimit() >= arsAmount && arsAmount >= 0.0){
-                    System.out.println("Saldo suficiente");
-                    Optional<Account> destinyAccountOptional = accountRepository.findById(transactionRequest.getDestinyAccountId());
+                    Optional<Account> destinyAccountOptional = originUser.getAccounts().stream()
+                            .filter(acc -> acc.getCurrency() == ECurrency.USD)
+                            .findFirst();;
 
                     if(destinyAccountOptional.isPresent() && destinyAccountOptional.get().getCurrency() == ECurrency.USD) {
-                        System.out.println("Cuenta destino encontrada");
-                        System.out.println("Cuenta destino es USD");
                         Account destinyUsdAccount = destinyAccountOptional.get();
 
-                        transactionRequest.setAmount(arsAmount);
-                        Transaction paymentTransaction = createPaymentForOriginUser(originArsAccount,transactionRequest);
+                        SendTransactionRequestDto paymentDto = new SendTransactionRequestDto();
+                        paymentDto.setAmount(arsAmount);
+                        paymentDto.setDestinyAccountId(destinyUsdAccount.getId());
+                        paymentDto.setDescription(transactionRequest.getDescription());
+                        Transaction paymentTransaction = createPaymentForOriginUser(originArsAccount, paymentDto);
 
-                        transactionRequest.setAmount(usdAmount);
-                        createIncomeForDestinyUser(destinyUsdAccount,transactionRequest);
+                        SendTransactionRequestDto incomeDto = new SendTransactionRequestDto();
+                        incomeDto.setAmount(usdAmount);
+                        incomeDto.setDestinyAccountId(destinyUsdAccount.getId());
+                        incomeDto.setDescription(transactionRequest.getDescription());
+                        createIncomeForDestinyUser(destinyUsdAccount, incomeDto);
 
-                        System.out.println("TRANSACCIÓN COMPLETADA");
                         return new CurrencyExchangeResponseDTO(
                                 originUser.getEmail(),
                                 originArsAccount.getId(),
