@@ -1,6 +1,7 @@
 package com.alkemy.wallet.service;
 
 import com.alkemy.wallet.dto.TransactionDto;
+import com.alkemy.wallet.dto.request.CurrencyExchangeRequestDto;
 import com.alkemy.wallet.dto.request.SendTransactionRequestDto;
 import com.alkemy.wallet.dto.request.UpdateTransactionRequestDto;
 import com.alkemy.wallet.dto.request.TransactionRequestDto;
@@ -18,4 +19,5 @@ public interface ITransactionService {
     SendTransactionResponseDto sendArs(SendTransactionRequestDto transactionRequest, String token);
     SendTransactionResponseDto sendUsd(SendTransactionRequestDto transactionRequest, String token);
     CurrencyExchangeResponseDTO buyUsd(SendTransactionRequestDto transactionRequest, String token);
+    CurrencyExchangeResponseDTO sellUsd(CurrencyExchangeRequestDto transactionRequest, String token);
 }

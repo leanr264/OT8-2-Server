@@ -1,6 +1,7 @@
 package com.alkemy.wallet.controller;
 
 import com.alkemy.wallet.dto.TransactionDto;
+import com.alkemy.wallet.dto.request.CurrencyExchangeRequestDto;
 import com.alkemy.wallet.dto.request.SendTransactionRequestDto;
 import com.alkemy.wallet.dto.request.UpdateTransactionRequestDto;
 import com.alkemy.wallet.dto.request.TransactionRequestDto;
@@ -75,6 +76,12 @@ public class TransactionController {
     @PostMapping("/buyUsd")
     public ResponseEntity<CurrencyExchangeResponseDTO> buyUsd(@Valid @RequestBody SendTransactionRequestDto transactionRequest, @RequestHeader(name = HttpHeaders.AUTHORIZATION) String token){
         CurrencyExchangeResponseDTO transactionResponse = transactionService.buyUsd(transactionRequest, token);
-        return new ResponseEntity<>(transactionResponse, HttpStatus.CREATED);
+        return new ResponseEntity<>(transactionResponse, HttpStatus.OK);
+    }
+
+    @PostMapping("/sellUsd")
+    public ResponseEntity<CurrencyExchangeResponseDTO> sellUsd(@Valid @RequestBody CurrencyExchangeRequestDto transactionRequest, @RequestHeader(name = HttpHeaders.AUTHORIZATION) String token) {
+        CurrencyExchangeResponseDTO response = transactionService.sellUsd(transactionRequest, token);
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

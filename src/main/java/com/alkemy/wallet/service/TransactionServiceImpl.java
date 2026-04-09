@@ -1,6 +1,7 @@
 package com.alkemy.wallet.service;
 
 import com.alkemy.wallet.dto.TransactionDto;
+import com.alkemy.wallet.dto.request.CurrencyExchangeRequestDto;
 import com.alkemy.wallet.dto.request.SendTransactionRequestDto;
 import com.alkemy.wallet.dto.request.TransactionRequestDto;
 import com.alkemy.wallet.dto.request.UpdateTransactionRequestDto;
@@ -287,6 +288,66 @@ public class TransactionServiceImpl implements ITransactionService {
                                 paymentTransaction.getId(),
                                 paymentTransaction.getAmount(),
                                 paymentTransaction.getType().name(),
+                                paymentTransaction.getDescription(),
+                                paymentTransaction.getTransactionDate()
+                        );
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    @Transactional
+    @Override
+    public CurrencyExchangeResponseDTO sellUsd(CurrencyExchangeRequestDto transactionRequest, String token) {
+        String originUserEmail = jwtService.extractUsername(token.substring(7));
+        Optional<User> originUserOptional = userRepository.findByEmail(originUserEmail);
+
+        if(originUserOptional.isPresent()){
+            User originUser = originUserOptional.get();
+
+            Optional<Account> originUsdAccountOpt = originUser.getAccounts().stream()
+                    .filter(acc -> acc.getCurrency() == ECurrency.USD)
+                    .findFirst();
+
+            if(originUsdAccountOpt.isPresent()){
+                Account originUsdAccount = originUsdAccountOpt.get();
+
+                // guardar el valor en dolares
+                double usdAmount = transactionRequest.getAmountUsd();
+
+                // convertir Amount en ars
+                double arsAmount = exchangeService.convertUsdToArs(transactionRequest.getAmountUsd());
+
+                if(originUsdAccount.getBalance() >= usdAmount && originUsdAccount.getTransactionLimit() >= usdAmount && usdAmount >= 0.0) {
+                    Optional<Account> destinyAccountOptional = originUser.getAccounts().stream()
+                            .filter(acc -> acc.getCurrency() == ECurrency.ARS)
+                            .findFirst();
+
+                    if(destinyAccountOptional.isPresent() && destinyAccountOptional.get().getCurrency() == ECurrency.ARS) {
+                        Account destinyArsAccount = destinyAccountOptional.get();
+
+                        SendTransactionRequestDto paymentDto = new SendTransactionRequestDto();
+                        paymentDto.setAmount(usdAmount);
+                        paymentDto.setDestinyAccountId(originUsdAccount.getId());
+                        paymentDto.setDescription(transactionRequest.getDescription());
+                        Transaction paymentTransaction = createPaymentForOriginUser(originUsdAccount, paymentDto);
+
+                        SendTransactionRequestDto incomeDto = new SendTransactionRequestDto();
+                        incomeDto.setAmount(arsAmount);
+                        incomeDto.setDestinyAccountId(destinyArsAccount.getId());
+                        incomeDto.setDescription(transactionRequest.getDescription());
+                        createIncomeForDestinyUser(destinyArsAccount, incomeDto);
+
+                        return new CurrencyExchangeResponseDTO(
+                                originUser.getEmail(),
+                                originUsdAccount.getId(),
+                                destinyArsAccount.getId(),
+                                paymentTransaction.getId(),
+                                paymentTransaction.getType().name(),
+                                arsAmount,
+                                paymentTransaction.getAmount(),
                                 paymentTransaction.getDescription(),
                                 paymentTransaction.getTransactionDate()
                         );
