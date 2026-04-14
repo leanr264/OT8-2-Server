@@ -11,6 +11,8 @@ import com.alkemy.wallet.dto.response.SendTransactionResponseDto;
 import com.alkemy.wallet.dto.response.TransactionResponseDto;
 import com.alkemy.wallet.service.ITransactionService;
 import com.alkemy.wallet.service.TransactionServiceImpl;
+import com.alkemy.wallet.service.IDollarService;
+import com.alkemy.wallet.service.DollarServiceImpl;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -24,9 +26,11 @@ import java.util.List;
 public class TransactionController {
 
     private final ITransactionService transactionService;
+    private final IDollarService dollarService;
 
-    public TransactionController(TransactionServiceImpl transactionService) {
+    public TransactionController(TransactionServiceImpl transactionService, DollarServiceImpl dollarService) {
         this.transactionService = transactionService;
+        this.dollarService = dollarService;
     }
 
 
@@ -36,12 +40,18 @@ public class TransactionController {
         return new ResponseEntity<>(transactionResponse,HttpStatus.OK);
     }
 
-
     @GetMapping
     public ResponseEntity<PageableTransactionResponseDto>getTransactionsByUserId(@RequestParam(name="user") Long userId, @RequestParam(defaultValue = "0") int page,@RequestHeader(name = HttpHeaders.AUTHORIZATION) String token){
         PageableTransactionResponseDto transactionsResponse = transactionService.getTransactionsByUserId(userId,page,token);
         return new ResponseEntity<>(transactionsResponse, HttpStatus.OK);
     }
+
+    @GetMapping("/exchange-rate")
+    public ResponseEntity<Double> getExchangeRate(@RequestHeader(name = HttpHeaders.AUTHORIZATION) String token) {
+        Double rate = dollarService.getDollarPrice();
+        return new ResponseEntity<>(rate, HttpStatus.OK);
+    }
+
     @PatchMapping("/{id}")
     public ResponseEntity<TransactionDto>updateTransactionDescription(@PathVariable Long id, @Valid @RequestBody UpdateTransactionRequestDto updateRequest,
                                                          @RequestHeader(name = HttpHeaders.AUTHORIZATION) String token){
