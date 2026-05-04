@@ -16,6 +16,7 @@ public interface ITransactionService {
     PageableTransactionResponseDto getTransactionsByUserId(Long userId, int page,String token);
     TransactionResponseDto createDeposit(TransactionRequestDto depositRequest, String token);
     TransactionResponseDto createPayment(TransactionRequestDto paymentRequest, String token);
+    TransactionResponseDto createIncome(TransactionRequestDto incomeRequest, String token);
     SendTransactionResponseDto sendArs(SendTransactionRequestDto transactionRequest, String token);
     SendTransactionResponseDto sendUsd(SendTransactionRequestDto transactionRequest, String token);
     CurrencyExchangeResponseDTO buyUsd(CurrencyExchangeRequestDto transactionRequest, String token);

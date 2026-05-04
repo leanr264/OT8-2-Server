@@ -227,6 +227,46 @@ public class TransactionServiceImpl implements ITransactionService {
     }
 
     @Override
+    public TransactionResponseDto createIncome(TransactionRequestDto incomeRequest, String token) {
+        if (incomeRequest.getAmount() < 0.00) {
+            return null;
+        }
+        String userEmail = jwtService.extractUsername(token.substring(7));
+        Optional<User> userOptional = userRepository.findByEmail(userEmail);
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            List<Account> userAccounts = user.getAccounts();
+            Optional<Account> accountOptional = userAccounts.stream()
+                    .filter(account -> account.getCurrency().name().equals(incomeRequest.getCurrency()))
+                    .findFirst();
+            if (accountOptional.isPresent()) {
+                Account account = accountOptional.get();
+                if (account.getBalance() >= incomeRequest.getAmount()) {
+                    Transaction newTransaction = new Transaction();
+                    newTransaction.setAmount(incomeRequest.getAmount());
+                    newTransaction.setType(ETransactionType.PAYMENT);
+                    newTransaction.setDescription(StringUtils.hasText(incomeRequest.getDescription()) ? incomeRequest.getDescription() : "");
+                    newTransaction.setAccount(account);
+                    Transaction transactionCreated = transactionRepository.save(newTransaction);
+                    account.setBalance(account.getBalance() - incomeRequest.getAmount());
+                    accountRepository.save(account);
+                    return new TransactionResponseDto(
+                            user.getEmail(),
+                            account.getId(),
+                            transactionCreated.getId(),
+                            incomeRequest.getCurrency(),
+                            ETransactionType.PAYMENT.name(),
+                            transactionCreated.getAmount(),
+                            transactionCreated.getDescription(),
+                            transactionCreated.getTransactionDate()
+                    );
+                }
+            }
+        }
+        return null;
+    }
+
+    @Override
     public SendTransactionResponseDto sendArs(SendTransactionRequestDto transactionRequest, String token) {
         String originUserEmail = jwtService.extractUsername(token.substring(7));
         Optional<User> originUserOptional = userRepository.findByEmail(originUserEmail);

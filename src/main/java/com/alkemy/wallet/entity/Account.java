@@ -56,4 +56,7 @@ public class Account {
 
     @OneToMany(mappedBy = "account")
     private List<FixedTermDeposit> fixedTermDeposits;
+
+    @OneToMany(mappedBy = "account")
+    private List<Loan> loans;
 }
