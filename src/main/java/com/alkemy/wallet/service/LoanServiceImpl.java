@@ -1,46 +1,61 @@
 package com.alkemy.wallet.service;
 
 import com.alkemy.wallet.dto.request.LoanRequestDto;
-import com.alkemy.wallet.dto.request.SendTransactionRequestDto;
 import com.alkemy.wallet.dto.request.TransactionRequestDto;
-import com.alkemy.wallet.dto.response.InstallmentResponseDTO;
+import com.alkemy.wallet.dto.response.InstallmentResponseDto;
+import com.alkemy.wallet.dto.LoanDto;
 import com.alkemy.wallet.dto.response.LoanResponseDto;
 import com.alkemy.wallet.entity.Account;
 import com.alkemy.wallet.entity.Installment;
 import com.alkemy.wallet.entity.Loan;
 import com.alkemy.wallet.entity.User;
 import com.alkemy.wallet.enums.ECurrency;
-import com.alkemy.wallet.enums.EInstallmentStatus;
 import com.alkemy.wallet.enums.ELoanStatus;
-import com.alkemy.wallet.repository.IAccountRepository;
 import com.alkemy.wallet.repository.IInstallmentRepository;
 import com.alkemy.wallet.repository.ILoanRepository;
 import com.alkemy.wallet.repository.IUserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Service
 public class LoanServiceImpl implements ILoanService{
     private final IUserRepository userRepository;
-    private final IAccountRepository accountRepository;
     private final ILoanRepository loanRepository;
     private final IInstallmentRepository installmentRepository;
     private final IJwtService jwtService;
     private final ITransactionService transactionService;
+    private final IInstallmentService installmentService;
 
-    public LoanServiceImpl(IUserRepository userRepository, IAccountRepository accountRepository, ILoanRepository loanRepository, IInstallmentRepository installmentRepository, IJwtService jwtService, ITransactionService transactionService) {
+    public LoanServiceImpl(IUserRepository userRepository, ILoanRepository loanRepository, IInstallmentRepository installmentRepository, IJwtService jwtService, ITransactionService transactionService, IInstallmentService installmentService) {
         this.userRepository = userRepository;
-        this.accountRepository = accountRepository;
         this.loanRepository = loanRepository;
         this.installmentRepository = installmentRepository;
         this.jwtService = jwtService;
         this.transactionService = transactionService;
+        this.installmentService = installmentService;
+    }
+
+    @Override
+    public List<LoanDto> getLoansByUserId(Long id, String token) {
+        Optional<User> userOptional = userRepository.findById(id);
+
+        if (userOptional.isPresent()) {
+            User user = userOptional.get();
+            String userEmail = jwtService.extractUsername(token.substring(7));
+
+            if(Objects.equals(user.getEmail(), userEmail)){
+                List<Loan> loans = loanRepository.findAllByAccountUser(user);
+
+                return loans.stream()
+                        .map(this::mapToLoanDto)
+                        .toList();
+            }
+        }
+        return null;
     }
 
     @Override
@@ -74,7 +89,13 @@ public class LoanServiceImpl implements ILoanService{
                     newLoan.setMonths(loanRequest.getMonths());
                     newLoan.setStatus(ELoanStatus.APPROVED);
                     newLoan.setAccount(account);
-                    Loan loanApplicated = loanRepository.save(newLoan);
+                    Loan savedLoan = loanRepository.save(newLoan);
+
+                    LoanResponseDto loanResponse = calculateLoan(savedLoan.getAmount(), savedLoan.getMonths());
+
+                    List<Installment> installments = installmentService.generateInstallments(savedLoan, loanResponse);
+                    installmentRepository.saveAll(installments);
+                    savedLoan.setInstallments(installments);
 
                     TransactionRequestDto incomeRequest = new TransactionRequestDto();
                     incomeRequest.setAmount(loanRequest.getAmount());
@@ -82,15 +103,20 @@ public class LoanServiceImpl implements ILoanService{
                     incomeRequest.setDescription("Préstamo aprobado");
                     transactionService.createIncome(incomeRequest, token);
 
-                    return calculateLoan(loanApplicated.getAmount(), loanApplicated.getMonths());
+                    return loanResponse;
                 }
             }
         }
         return null;
     }
 
-    public InstallmentResponseDTO payInstallment() {
-        return null;
+    private LoanDto mapToLoanDto(Loan loan) {
+        return new LoanDto(
+                loan.getId(),
+                loan.getAmount(),
+                loan.getMonths(),
+                loan.getStatus().name()
+        );
     }
 
     private LoanResponseDto calculateLoan(double amount, int months) {
@@ -102,37 +128,16 @@ public class LoanServiceImpl implements ILoanService{
             default -> 0.00;
         };
 
-        double paymentPerMonth = amount/months + amount * interest;
-        double totalInterest = (amount*interest)*months;
+        double totalInterest = amount * interest;
         double totalPayment = amount + totalInterest;
+        double paymentPerMonth = totalPayment / months;
         return new LoanResponseDto(
                 amount,
                 months,
-                interest*100 + "% monthly",
+                interest*100 + "% mensual",
                 paymentPerMonth,
                 totalInterest,
                 totalPayment
         );
-    }
-
-    private List<Installment> generateInstallments(Loan loan, LoanResponseDto loanResponse) {
-        List<Installment> installments = new ArrayList<>();
-
-        int months = loanResponse.getMonths();
-        double amount = loanResponse.getPaymentPerMonth();
-        LocalDateTime now = LocalDateTime.now();
-
-        for(int m = 0; m < months; m++) {
-            Installment installment = new Installment();
-
-            installment.setInstallmentNumber(m+1);
-            installment.setAmount(amount);
-            installment.setStatus(EInstallmentStatus.PENDING);
-            installment.setLoan(loan);
-            installment.setExpirationDate(LocalDate.from(now.plusMonths(m+1)));
-            installments.add(installment);
-            //installmentRepository.save(installment);
-        }
-        return installments;
     }
 }

@@ -24,7 +24,7 @@ public class Installment {
     private int installmentNumber;
 
     @Column(name = "AMOUNT", nullable = false)
-    private Double amount;
+    private double amount;
 
     @Column(name = "EXPIRATION_DATE")
     private LocalDate expirationDate;
@@ -36,5 +36,6 @@ public class Installment {
     private EInstallmentStatus status;
 
     @ManyToOne
+    @JoinColumn(name="LOAN_ID", referencedColumnName = "ID")
     private Loan loan;
 }

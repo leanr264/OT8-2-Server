@@ -40,6 +40,6 @@ public class Loan {
     @JoinColumn(name="ACCOUNT_ID", referencedColumnName = "ID")
     private Account account;
 
-    @OneToMany(mappedBy = "loan")
+    @OneToMany(mappedBy = "loan", cascade = CascadeType.ALL)
     private List<Installment> installments;
 }

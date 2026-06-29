@@ -244,18 +244,18 @@ public class TransactionServiceImpl implements ITransactionService {
                 if (account.getBalance() >= incomeRequest.getAmount()) {
                     Transaction newTransaction = new Transaction();
                     newTransaction.setAmount(incomeRequest.getAmount());
-                    newTransaction.setType(ETransactionType.PAYMENT);
+                    newTransaction.setType(ETransactionType.INCOME);
                     newTransaction.setDescription(StringUtils.hasText(incomeRequest.getDescription()) ? incomeRequest.getDescription() : "");
                     newTransaction.setAccount(account);
                     Transaction transactionCreated = transactionRepository.save(newTransaction);
-                    account.setBalance(account.getBalance() - incomeRequest.getAmount());
+                    account.setBalance(account.getBalance() + incomeRequest.getAmount());
                     accountRepository.save(account);
                     return new TransactionResponseDto(
                             user.getEmail(),
                             account.getId(),
                             transactionCreated.getId(),
                             incomeRequest.getCurrency(),
-                            ETransactionType.PAYMENT.name(),
+                            ETransactionType.INCOME.name(),
                             transactionCreated.getAmount(),
                             transactionCreated.getDescription(),
                             transactionCreated.getTransactionDate()

@@ -7,7 +7,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Getter
 @Setter
-public class InstallmentResponseDTO {
+public class InstallmentResponseDto {
     int installmentNumber;
     double amountPay;
     String status;

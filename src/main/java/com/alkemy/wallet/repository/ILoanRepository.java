@@ -7,5 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface ILoanRepository extends JpaRepository<Loan, Long> {
-    List<Loan> findAllByUser(User user);
+    List<Loan> findAllByAccountUser(User user);
 }
